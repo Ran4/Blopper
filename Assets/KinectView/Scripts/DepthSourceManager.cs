@@ -13,6 +13,7 @@ public class DepthSourceManager : MonoBehaviour
         return _Data;
     }
 
+
     void Start () 
     {
         _Sensor = KinectSensor.GetDefault();

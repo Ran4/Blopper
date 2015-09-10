@@ -1,0 +1,14 @@
+﻿<Properties>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\KinectView\Scripts\ColorSourceManager.cs">
+    <Files>
+      <File FileName="Assets\KinectView\Scripts\mainscript.cs" Line="4" Column="1" />
+      <File FileName="Assets\KinectView\Scripts\BodySourceManager.cs" Line="10" Column="5" />
+      <File FileName="Assets\KinectView\Scripts\ColorSourceManager.cs" Line="41" Column="27" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>
