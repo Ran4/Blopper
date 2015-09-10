@@ -4,7 +4,8 @@
     <Files>
       <File FileName="Assets\KinectView\Scripts\mainscript.cs" Line="4" Column="1" />
       <File FileName="Assets\KinectView\Scripts\BodySourceManager.cs" Line="10" Column="5" />
-      <File FileName="Assets\KinectView\Scripts\ColorSourceManager.cs" Line="41" Column="27" />
+      <File FileName="Assets\KinectView\Scripts\ColorSourceManager.cs" Line="105" Column="50" />
+      <File FileName="Assets\KinectView\Scripts\DepthSourceManager.cs" Line="19" Column="33" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

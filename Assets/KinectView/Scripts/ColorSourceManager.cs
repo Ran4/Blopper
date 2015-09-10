@@ -35,9 +35,9 @@ public class ColorSourceManager : MonoBehaviour
     private ColorFrameReader _Reader;
     private Texture2D _Texture;
     private byte[] _Data;
-	//allowedDistance 0.18 för bollens rgb(0.5,0.5,0) funkade idag typ runt kl 14:52 (mtp ljuset)
-	public double allowedDistance = 0.6;
-	public Point yellowBall = new Point(0,0,0.5,0.5,0);
+	private static double _allowedDistance = 0.07; //för bollens rgb(0.5,0.5,0) funkade idag typ runt kl 14:52 (mtp ljuset)
+
+	public Point yellowBall = new Point(0,0,1,1,0.6);
 	public double compareRed;
 	public double compareGreen;
 	public double compareBlue;
@@ -95,18 +95,18 @@ public class ColorSourceManager : MonoBehaviour
 
 				//Rasmus här är nya koden för sökningen av bollen. Vi har globala variabler uppe som vi använder
 				//Point är bara en punkt som innehåller x,y (koordinater) och r,g,b (rgb-värden). tempPixelColor och yellowBall är Pointobjekt
-				for(int i = 0; i < ColorWidth; i+=10){
-					for(int j = 0; j < ColorHeight; j+=10){
+				for(int i = 0; i < ColorWidth; i+=1){
+					for(int j = 0; j < ColorHeight; j+=1){
 						tempPixelColor.r = _Texture.GetPixel(i,j).r;
 						tempPixelColor.g = _Texture.GetPixel(i,j).g;
 						tempPixelColor.b = _Texture.GetPixel(i,j).b;
 
 						//Euclidean räknar bara ut euklidiska distansen i rgb-format mellan pixeln vi kollar och vårt försatta värde av den gula bollen
 						currentColorDistance = Euclidean(tempPixelColor, yellowBall);
+						if(currentColorDistance < _allowedDistance){
+							//Debug.Log (i);
 
-						if(currentColorDistance < allowedDistance){
-							Debug.Log (i);
-							Debug.Log (j);
+							// _DepthManager borde innehålla djupdatan men om man kommenterar ut nedstående tre rader så funkar ej utskriften av pixelvärdet längre???
 							if (DepthSourceManager == null){return;}
 							
 							_DepthManager = DepthSourceManager.GetComponent<DepthSourceManager>();
