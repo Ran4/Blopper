@@ -53,9 +53,10 @@ public class ColorSourceManager : MonoBehaviour
 
 	public double prevX, prevY;
 	public int offsetX, offsetY, startSearchOffsetX, startSearchOffsetY;
-	
+	public double foundX, foundY;
 	//SOCKET
 	public static NetworkStream stream;
+	byte[] dataToSend;
 
 	public void DrawCircle(double x, double y){
 		x /= 75.0;
@@ -145,7 +146,7 @@ public class ColorSourceManager : MonoBehaviour
 
 				//Rasmus här är nya koden för sökningen av bollen. Vi har globala variabler uppe som vi använder
 				//Point är bara en punkt som innehåller x,y (koordinater) och r,g,b (rgb-värden). tempPixelColor och yellowBall är Pointobjekt
-				int pixelSteps = 10;
+				int pixelSteps = 7;
 				for(int i = 0; i < ColorWidth; i+=pixelSteps){
 					for(int j = 0; j < ColorHeight; j+=pixelSteps){
 						//int ii = (offsetX + startSearchOffsetX + i) % ColorWidth;
@@ -166,12 +167,13 @@ public class ColorSourceManager : MonoBehaviour
 
 							//We have found what we think is a match. Now find the middle point
 
-							int precisionCheckSize = 60;
+							int precisionCheckSize = 200;
 							int numMatches = 0;
-							double x = 0, y = 0;
+							double x = 0;
+							double y = 0;
 							double xSum = 0, ySum = 0;
-							for (int i2 = -precisionCheckSize; i2 < precisionCheckSize; i2++) {
-								for (int j2 = -precisionCheckSize; j2 < precisionCheckSize; j2++) {
+							for (int i2 = -precisionCheckSize; i2 < precisionCheckSize; i2 += 4) {
+								for (int j2 = -precisionCheckSize; j2 < precisionCheckSize; j2 += 4) {
 									x = ii+i2;
 									y = jj+j2;
 									//Debug.Log("INSIDE CHECK: ii/jj is:" + ii.ToString() + "/" + jj.ToString());
@@ -204,6 +206,12 @@ public class ColorSourceManager : MonoBehaviour
 								x = xSum / (double)numMatches;
 								y = ySum / (double)numMatches;
 
+
+								//SOCKET: data ska vara koordinater
+								//dataToSend = System.Text.Encoding.ASCII.GetBytes("hej2");
+								dataToSend = System.Text.Encoding.ASCII.GetBytes(x.ToString() + " " + y.ToString());
+								if (stream != null) { stream.Write(dataToSend, 0, dataToSend.Length); }
+
 								if (prevX != -1 && prevY != -1) {
 									DrawCircle((x+prevX)/2, (y+prevY)/2);
 								} else {
@@ -212,7 +220,12 @@ public class ColorSourceManager : MonoBehaviour
 								prevX = x;
 								prevY = y;
 
-								Debug.Log ("x=" + x.ToString() + ", y=" + y.ToString() + "numMatches=" + numMatches.ToString());
+								foundX = x;
+								foundY = y;
+
+								//Debug.Log ("x=" + x.ToString() + ", y=" + y.ToString() + "numMatches=" + numMatches.ToString());
+								Debug.Log ("numMatches: " + numMatches.ToString());
+									
 
 
 								//jump out of loop, don't look for more objects
@@ -237,10 +250,6 @@ public class ColorSourceManager : MonoBehaviour
 						}
 					}
 				}
-				
-				//SOCKET: data ska vara koordinater
-				byte[] data = System.Text.Encoding.ASCII.GetBytes("hej2");
-				stream.Write(data, 0, data.Length);
 				//Debug.Log (ColorWidth);
 				//Debug.Log (ColorHeight);
 			}
