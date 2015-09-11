@@ -35,7 +35,7 @@ public class ColorSourceManager : MonoBehaviour
     private ColorFrameReader _Reader;
     private Texture2D _Texture;
     private byte[] _Data;
-	private static double _allowedDistance = 0.09; //för bollens rgb(0.5,0.5,0) funkade idag typ runt kl 14:52 (mtp ljuset)
+	private static double _allowedDistance = 0.10; //för bollens rgb(0.5,0.5,0) funkade idag typ runt kl 14:52 (mtp ljuset)
 	
 	//green-ish ball: 0.465, 0.680, 0.164
 	//bloodred circle paper thingy 0.664, 0.207, 0.082
@@ -48,7 +48,8 @@ public class ColorSourceManager : MonoBehaviour
 	public Point tempPixelColor = new Point(0,0,0,0,0);
 	public LineRenderer lineRenderer;
 
-	public int prevX, prevY, offsetX, offsetY, startSearchOffsetX, startSearchOffsetY;
+	public double prevX, prevY;
+	public int offsetX, offsetY, startSearchOffsetX, startSearchOffsetY;
 
 	public void DrawCircle(double x, double y){
 		x /= 75.0;
@@ -86,8 +87,8 @@ public class ColorSourceManager : MonoBehaviour
         
         if (_Sensor != null) 
         {
-			prevX = 0;
-			prevY = 0;
+			prevX = -1;
+			prevY = -1;
 			offsetX = -250;
 			offsetY = -250;
 
@@ -124,8 +125,8 @@ public class ColorSourceManager : MonoBehaviour
                 frame = null;
 
 				if (prevX != -1 && prevY != -1) {
-					startSearchOffsetX = prevX;
-					startSearchOffsetY = prevY;
+					startSearchOffsetX = (int)prevX;
+					startSearchOffsetY = (int)prevY;
 				} else {
 					startSearchOffsetX = 0;
 					startSearchOffsetY = 0;
@@ -136,11 +137,11 @@ public class ColorSourceManager : MonoBehaviour
 				int pixelSteps = 10;
 				for(int i = 0; i < ColorWidth; i+=pixelSteps){
 					for(int j = 0; j < ColorHeight; j+=pixelSteps){
-						int ii = (offsetX + startSearchOffsetX + i) % ColorWidth;
-						int jj = (offsetY + startSearchOffsetY + j) % ColorHeight;
+						//int ii = (offsetX + startSearchOffsetX + i) % ColorWidth;
+						//int jj = (offsetY + startSearchOffsetY + j) % ColorHeight;
 
-						ii = i;
-						jj = j;
+						int ii = i;
+						int jj = j;
 
 						tempPixelColor.r = _Texture.GetPixel(ii,jj).r;
 						tempPixelColor.g = _Texture.GetPixel(ii,jj).g;
@@ -150,29 +151,38 @@ public class ColorSourceManager : MonoBehaviour
 						currentColorDistance = Euclidean(tempPixelColor, yellowBall);
 						if(currentColorDistance < _allowedDistance){
 							DrawCircle(ii,jj);
+							//Debug.Log("ii/jj is:" + ii.ToString() + "/" + jj.ToString());
 
 							//We have found what we think is a match. Now find the middle point
 
-							int precisionCheckSize = 100;
+							int precisionCheckSize = 60;
 							int numMatches = 0;
 							double x = 0, y = 0;
+							double xSum = 0, ySum = 0;
 							for (int i2 = -precisionCheckSize; i2 < precisionCheckSize; i2++) {
 								for (int j2 = -precisionCheckSize; j2 < precisionCheckSize; j2++) {
-									ii = ii+i2;
-									jj = jj+j2;
+									x = ii+i2;
+									y = jj+j2;
+									//Debug.Log("INSIDE CHECK: ii/jj is:" + ii.ToString() + "/" + jj.ToString());
 
-									if (i2 == 3 && j2 == 3) {
-										Debug.Log ("ii/jj: " + ii + "/" + jj);
-									}
-									if (ii >= 0 && ii < ColorWidth && jj >= 0 && jj < ColorHeight) {
-										tempPixelColor.r = _Texture.GetPixel(ii, jj).r;
-										tempPixelColor.g = _Texture.GetPixel(ii, jj).g;
-										tempPixelColor.b = _Texture.GetPixel(ii, jj).b;
-										if (Euclidean(tempPixelColor, yellowBall) < _allowedDistance) {
+
+									if (x >= 0 && x < ColorWidth && y >= 0 && y < ColorHeight) {
+										tempPixelColor.r = _Texture.GetPixel((int)x, (int)y).r;
+										tempPixelColor.g = _Texture.GetPixel((int)x, (int)y).g;
+										tempPixelColor.b = _Texture.GetPixel((int)x, (int)y).b;
+
+
+										/*
+										if (Euclidean(tempPixelColor, yellowBall) < 0.3) {
+											Debug.Log("euclidian: " + Euclidean(tempPixelColor, yellowBall).ToString());
+										}*/
+
+										if (Euclidean(tempPixelColor, yellowBall) < _allowedDistance*0.7) {
 											//match was found!
+											//Debug.Log("Match found!");
 											numMatches += 1;
-											x += (double)ii;
-											y += (double)jj;
+											xSum += x;
+											ySum += y;
 										}
 									}
 								}
@@ -180,12 +190,23 @@ public class ColorSourceManager : MonoBehaviour
 
 							if (numMatches > 0) {
 								//Debug.Log(numMatches);
-								x = x / (double)numMatches;
-								y = y / (double)numMatches;
-								Debug.Log ("x=" + x + ", y=" + y + "numMatches=" + numMatches);
-								//DrawCircle(x,y);
-								prevX = (int)x;
-								prevY = (int)y;
+								x = xSum / (double)numMatches;
+								y = ySum / (double)numMatches;
+
+								if (prevX != -1 && prevY != -1) {
+									DrawCircle((x+prevX)/2, (y+prevY)/2);
+								} else {
+									DrawCircle(x, y);
+								}
+								prevX = x;
+								prevY = y;
+
+								Debug.Log ("x=" + x.ToString() + ", y=" + y.ToString() + "numMatches=" + numMatches.ToString());
+
+
+								//jump out of loop, don't look for more objects
+								i = ColorWidth + 9001;
+								j = ColorHeight + 9001;
 							}
 
 							// _DepthManager borde innehålla djupdatan men om man kommenterar ut nedstående tre rader så funkar ej utskriften av pixelvärdet längre???
