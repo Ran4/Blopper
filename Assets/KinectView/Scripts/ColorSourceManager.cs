@@ -35,14 +35,40 @@ public class ColorSourceManager : MonoBehaviour
     private ColorFrameReader _Reader;
     private Texture2D _Texture;
     private byte[] _Data;
-	private static double _allowedDistance = 0.07; //för bollens rgb(0.5,0.5,0) funkade idag typ runt kl 14:52 (mtp ljuset)
-
-	public Point yellowBall = new Point(0,0,1,1,0.6);
+	private static double _allowedDistance = 0.09; //för bollens rgb(0.5,0.5,0) funkade idag typ runt kl 14:52 (mtp ljuset)
+	
+	//green-ish ball: 0.465, 0.680, 0.164
+	//bloodred circle paper thingy 0.664, 0.207, 0.082
+	//public Point yellowBall = new Point(0,0,  0.465, 0.680, 0.164);
+	public Point yellowBall = new Point(0,0,  0.664, 0.207, 0.082);
 	public double compareRed;
 	public double compareGreen;
 	public double compareBlue;
 	public double currentColorDistance;
 	public Point tempPixelColor = new Point(0,0,0,0,0);
+	public LineRenderer lineRenderer;
+
+	public int prevX, prevY, offsetX, offsetY, startSearchOffsetX, startSearchOffsetY;
+
+	public void DrawCircle(double x, double y){
+		x /= 75.0;
+		y /= -75.0;
+		x -= 10;
+		y += 7;
+
+		lineRenderer.material = new Material (Shader.Find ("Particles/Additive"));
+		lineRenderer.SetColors (Color.red, Color.red);
+		lineRenderer.SetWidth(0.2F, 0.2F);
+
+		lineRenderer.SetVertexCount(5);
+		double r = 1.5F;
+		lineRenderer.SetPosition(0, new Vector3((float)x, (float)y, 0));
+		lineRenderer.SetPosition(1, new Vector3((float)(x+r), (float)y, 0));
+		lineRenderer.SetPosition(2, new Vector3((float)(x+r), (float)(y+r), 0));
+		lineRenderer.SetPosition(3, new Vector3((float)x, (float)(y+r), 0));
+		lineRenderer.SetPosition(4, new Vector3((float)x, (float)y, 0));
+	
+	}
     
     public Texture2D GetColorTexture()
     {
@@ -60,8 +86,13 @@ public class ColorSourceManager : MonoBehaviour
         
         if (_Sensor != null) 
         {
+			prevX = 0;
+			prevY = 0;
+			offsetX = -250;
+			offsetY = -250;
+
             _Reader = _Sensor.ColorFrameSource.OpenReader();
-            
+			lineRenderer = gameObject.AddComponent<LineRenderer>();
             var frameDesc = _Sensor.ColorFrameSource.CreateFrameDescription(ColorImageFormat.Rgba);
             ColorWidth = frameDesc.Width;
             ColorHeight = frameDesc.Height;
@@ -73,8 +104,7 @@ public class ColorSourceManager : MonoBehaviour
             if (!_Sensor.IsOpen)
             {
                 _Sensor.Open();
-            }
-        	
+            }	
 		}
     }
     
@@ -93,18 +123,70 @@ public class ColorSourceManager : MonoBehaviour
                 frame.Dispose();
                 frame = null;
 
+				if (prevX != -1 && prevY != -1) {
+					startSearchOffsetX = prevX;
+					startSearchOffsetY = prevY;
+				} else {
+					startSearchOffsetX = 0;
+					startSearchOffsetY = 0;
+				}
+
 				//Rasmus här är nya koden för sökningen av bollen. Vi har globala variabler uppe som vi använder
 				//Point är bara en punkt som innehåller x,y (koordinater) och r,g,b (rgb-värden). tempPixelColor och yellowBall är Pointobjekt
-				for(int i = 0; i < ColorWidth; i+=1){
-					for(int j = 0; j < ColorHeight; j+=1){
-						tempPixelColor.r = _Texture.GetPixel(i,j).r;
-						tempPixelColor.g = _Texture.GetPixel(i,j).g;
-						tempPixelColor.b = _Texture.GetPixel(i,j).b;
+				int pixelSteps = 10;
+				for(int i = 0; i < ColorWidth; i+=pixelSteps){
+					for(int j = 0; j < ColorHeight; j+=pixelSteps){
+						int ii = (offsetX + startSearchOffsetX + i) % ColorWidth;
+						int jj = (offsetY + startSearchOffsetY + j) % ColorHeight;
+
+						ii = i;
+						jj = j;
+
+						tempPixelColor.r = _Texture.GetPixel(ii,jj).r;
+						tempPixelColor.g = _Texture.GetPixel(ii,jj).g;
+						tempPixelColor.b = _Texture.GetPixel(ii,jj).b;
 
 						//Euclidean räknar bara ut euklidiska distansen i rgb-format mellan pixeln vi kollar och vårt försatta värde av den gula bollen
 						currentColorDistance = Euclidean(tempPixelColor, yellowBall);
 						if(currentColorDistance < _allowedDistance){
-							//Debug.Log (i);
+							DrawCircle(ii,jj);
+
+							//We have found what we think is a match. Now find the middle point
+
+							int precisionCheckSize = 100;
+							int numMatches = 0;
+							double x = 0, y = 0;
+							for (int i2 = -precisionCheckSize; i2 < precisionCheckSize; i2++) {
+								for (int j2 = -precisionCheckSize; j2 < precisionCheckSize; j2++) {
+									ii = ii+i2;
+									jj = jj+j2;
+
+									if (i2 == 3 && j2 == 3) {
+										Debug.Log ("ii/jj: " + ii + "/" + jj);
+									}
+									if (ii >= 0 && ii < ColorWidth && jj >= 0 && jj < ColorHeight) {
+										tempPixelColor.r = _Texture.GetPixel(ii, jj).r;
+										tempPixelColor.g = _Texture.GetPixel(ii, jj).g;
+										tempPixelColor.b = _Texture.GetPixel(ii, jj).b;
+										if (Euclidean(tempPixelColor, yellowBall) < _allowedDistance) {
+											//match was found!
+											numMatches += 1;
+											x += (double)ii;
+											y += (double)jj;
+										}
+									}
+								}
+							}
+
+							if (numMatches > 0) {
+								//Debug.Log(numMatches);
+								x = x / (double)numMatches;
+								y = y / (double)numMatches;
+								Debug.Log ("x=" + x + ", y=" + y + "numMatches=" + numMatches);
+								//DrawCircle(x,y);
+								prevX = (int)x;
+								prevY = (int)y;
+							}
 
 							// _DepthManager borde innehålla djupdatan men om man kommenterar ut nedstående tre rader så funkar ej utskriften av pixelvärdet längre???
 							if (DepthSourceManager == null){return;}
@@ -115,6 +197,11 @@ public class ColorSourceManager : MonoBehaviour
 							//Debug.Log (_DepthManager.GetData());
 							//*Debug.Log(currentColorDistance);
 
+						} else {
+							//DrawCircle(-500.0,-500.0);
+							//lineRenderer.SetVertexCount(0);
+							prevX = -1;
+							prevY = -1;
 						}
 					}
 				}
