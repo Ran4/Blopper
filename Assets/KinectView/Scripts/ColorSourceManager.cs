@@ -2,6 +2,9 @@
 using System.Collections;
 using Windows.Kinect;
 using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
 
 
 
@@ -50,6 +53,9 @@ public class ColorSourceManager : MonoBehaviour
 
 	public double prevX, prevY;
 	public int offsetX, offsetY, startSearchOffsetX, startSearchOffsetY;
+	
+	//SOCKET
+	public static NetworkStream stream;
 
 	public void DrawCircle(double x, double y){
 		x /= 75.0;
@@ -83,6 +89,11 @@ public class ColorSourceManager : MonoBehaviour
     
     void Start()
     {
+	//Socket
+	Connect ("127.0.0.1", "Hej");
+	//SOCKET: data ska vara koordinater
+	//byte[] data = System.Text.Encoding.ASCII.GetBytes("hej3");
+	//stream.Write(data, 0, data.Length);
         _Sensor = KinectSensor.GetDefault();
         
         if (_Sensor != null) 
@@ -226,11 +237,51 @@ public class ColorSourceManager : MonoBehaviour
 						}
 					}
 				}
+				
+				//SOCKET: data ska vara koordinater
+				byte[] data = System.Text.Encoding.ASCII.GetBytes("hej2");
+				stream.Write(data, 0, data.Length);
 				//Debug.Log (ColorWidth);
 				//Debug.Log (ColorHeight);
 			}
         }
     }
+    
+	//SOCKET
+	static void Connect(String server, String message) 
+	{
+		try 
+		{
+			Int32 port = 12345;
+			TcpClient client = new TcpClient(server, port);
+			
+			// Translate the passed message into ASCII and store it as a Byte array.
+			Byte[] data = System.Text.Encoding.ASCII.GetBytes(message);         
+			
+			//Stream stream = client.GetStream();
+			
+			stream = client.GetStream();
+			
+			// Send the message to the connected TcpServer. 
+			stream.Write(data, 0, data.Length);
+			data = System.Text.Encoding.ASCII.GetBytes("hej2");
+			stream.Write(data, 0, data.Length);
+
+			//stream.Close();         
+			//client.Close();         
+		} 
+		catch (ArgumentNullException e) 
+		{
+			Console.WriteLine("ArgumentNullException: {0}", e);
+		} 
+		catch (SocketException e) 
+		{
+			Console.WriteLine("SocketException: {0}", e);
+		}
+		
+		Console.WriteLine("\n Press Enter to continue...");
+		Console.Read();
+	}
 
     void OnApplicationQuit()
     {
